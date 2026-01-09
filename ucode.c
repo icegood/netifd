@@ -316,6 +316,7 @@ uc_netifd_start_process(uc_value_t *dir, uc_value_t *arg, uc_value_t *env, int *
 		goto error;
 
 	if (pid > 0) {
+		netifd_log_message(L_DEBUG, "Process started: %d", pid);
 		close(pfds[1]);
 		*fd = pfds[0];
 		return pid;
@@ -373,6 +374,7 @@ uc_netifd_start_process(uc_value_t *dir, uc_value_t *arg, uc_value_t *env, int *
 	if (pfds[1] > 2)
 		close(pfds[1]);
 
+	netifd_log_message(L_DEBUG, "To execute in child: %s", argv[0]);
 	execvp(argv[0], (char **) argv);
 	exit(127);
 
@@ -517,7 +519,7 @@ static const uc_function_list_t netifd_fns[] = {
 };
 
 
-void netifd_ucode_init(void)
+int netifd_ucode_init(void)
 {
 	static uc_parse_config_t config = {
 		.strict_declarations = true,
@@ -532,7 +534,7 @@ void netifd_ucode_init(void)
 
 	source = uc_source_new_file(DEFAULT_MAIN_PATH "/main.uc");
 	if (!source)
-		return;
+		return 1;
 
 	uc_search_path_init(&config.module_search_path);
 	uc_search_path_add(&config.module_search_path, DEFAULT_MAIN_PATH "/*.so");
@@ -570,12 +572,13 @@ void netifd_ucode_init(void)
 	if (!prog) {
 		netifd_log_message(L_CRIT, "Error loading ucode script: %s\n", err);
 		netifd_ucode_free();
-		return;
+		return 1;
 	}
 
 	uc_vm_execute(&vm, prog, &val);
 	uc_program_put(prog);
 	ucv_put(val);
+	return 0;
 }
 
 void netifd_ucode_free(void)
@@ -586,3 +589,5 @@ void netifd_ucode_free(void)
 	uc_search_path_free(&vm.config->module_search_path);
 	uc_vm_free(&vm);
 }
+
+

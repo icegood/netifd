@@ -307,29 +307,6 @@ static int usage(const char *progname)
 }
 
 static void
-netifd_handle_signal(int signo)
-{
-	uloop_end();
-}
-
-static void
-netifd_setup_signals(void)
-{
-	struct sigaction s;
-
-	memset(&s, 0, sizeof(s));
-	s.sa_handler = netifd_handle_signal;
-	s.sa_flags = 0;
-	sigaction(SIGINT, &s, NULL);
-	sigaction(SIGTERM, &s, NULL);
-	sigaction(SIGUSR1, &s, NULL);
-	sigaction(SIGUSR2, &s, NULL);
-
-	s.sa_handler = SIG_IGN;
-	sigaction(SIGPIPE, &s, NULL);
-}
-
-static void
 netifd_kill_processes(void)
 {
 	struct netifd_process *proc, *tmp;
@@ -383,7 +360,6 @@ int main(int argc, char **argv)
 	if (use_syslog)
 		openlog("netifd", 0, LOG_DAEMON);
 
-	netifd_setup_signals();
 	uloop_init();
 	udebug_init(&ud);
 	udebug_auto_connect(&ud, NULL);
@@ -397,7 +373,10 @@ int main(int argc, char **argv)
 
 	proto_shell_init();
 	extdev_init();
-	netifd_ucode_init();
+	if(netifd_ucode_init()) {
+		fprintf(stderr, "Failed to initialize ucode\n");
+		return 1;
+	}
 
 	if (system_init()) {
 		fprintf(stderr, "Failed to initialize system control\n");
