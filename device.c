@@ -88,12 +88,12 @@ static int __devlock = 0;
 int device_type_add(struct device_type *devtype)
 {
 	if (device_type_get(devtype->name)) {
-		netifd_log_message(L_WARNING, "Device handler '%s' already exists\n",
+		ULOG_WARN("Device handler '%s' already exists\n",
 				   devtype->name);
 		return 1;
 	}
 
-	netifd_log_message(L_NOTICE, "Added device handler type: %s\n",
+	ULOG_NOTE("Added device handler type: %s\n",
 		devtype->name);
 
 	list_add(&devtype->list, &devtypes);
@@ -792,7 +792,7 @@ int device_init_virtual(struct device *dev, struct device_type *type, const char
 
 		ret = device_set_ifname(dev, name);
 		if (ret < 0) {
-			netifd_log_message(L_WARNING, "Failed to initalize device '%s'\n", name);
+			ULOG_WARN("Failed to initalize device '%s'\n", name);
 			return ret;
 		}
 	}
@@ -986,7 +986,7 @@ void device_set_link(struct device *dev, bool state)
 	if (dev->link_active == state)
 		return;
 
-	netifd_log_message(L_NOTICE, "%s '%s' link is %s\n", dev->type->name, dev->ifname, state ? "up" : "down" );
+	ULOG_NOTE("%s '%s' link is %s\n", dev->type->name, dev->ifname, state ? "up" : "down" );
 
 	dev->link_active = state;
 	if (!state)
@@ -1011,7 +1011,7 @@ int device_set_ifname(struct device *dev, const char *name)
 		return 0;
 
 	if (strlen(name) > sizeof(dev->ifname) - 1) {
-		netifd_log_message(L_WARNING, "Cannot set device name: '%s' is longer than max size %zd\n",
+		ULOG_WARN("Cannot set device name: '%s' is longer than max size %zd\n",
 			name, sizeof(dev->ifname) - 1);
 		return -1;
 	}

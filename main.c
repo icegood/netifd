@@ -62,23 +62,7 @@ static struct udebug_ubus_ring rings[] = {
 	},
 };
 
-#define DEFAULT_LOG_LEVEL L_NOTICE
-
-static int log_level = DEFAULT_LOG_LEVEL;
-static const int log_class[] = {
-	[L_CRIT] = LOG_CRIT,
-	[L_WARNING] = LOG_WARNING,
-	[L_NOTICE] = LOG_NOTICE,
-	[L_INFO] = LOG_INFO,
-	[L_DEBUG] = LOG_DEBUG
-};
-
-#ifdef DUMMY_MODE
-#define use_syslog false
-#else
-static bool use_syslog = true;
-#endif
-
+#define DEFAULT_LOG_LEVEL LOG_NOTICE
 
 static void
 netifd_delete_process(struct netifd_process *proc)
@@ -115,27 +99,6 @@ void netifd_udebug_config(struct udebug_ubus *ctx, struct blob_attr *data,
 	udebug_ubus_apply_config(&ud, rings, ARRAY_SIZE(rings), data, enabled);
 }
 
-void
-__attribute__((format(printf, 2, 0)))
-netifd_log_message(int priority, const char *format, ...)
-{
-	va_list vl;
-
-	va_start(vl, format);
-	netifd_udebug_vprintf(format, vl);
-	va_end(vl);
-
-	if (priority > log_level)
-		return;
-
-	va_start(vl, format);
-	if (use_syslog)
-		vsyslog(log_class[priority], format, vl);
-	else
-		vfprintf(stderr, format, vl);
-	va_end(vl);
-}
-
 static void
 netifd_process_log_read_cb(struct ustream *s, int bytes)
 {
@@ -166,11 +129,9 @@ netifd_process_log_read_cb(struct ustream *s, int bytes)
 		} else if (newline) {
 			*newline = 0;
 			len = newline + 1 - data;
-			netifd_log_message(L_NOTICE, "%s (%d): %s\n",
-				log_prefix, proc->uloop.pid, data);
+			ULOG_DEBUG("%s (%d): %s\n", log_prefix, proc->uloop.pid, data);
 		} else if (len == s->r.buffer_len) {
-			netifd_log_message(L_NOTICE, "%s (%d): %s [...]\n",
-				log_prefix, proc->uloop.pid, data);
+			ULOG_DEBUG("%s (%d): %s [...]\n", log_prefix, proc->uloop.pid, data);
 			proc->log_overflow = true;
 		} else
 			break;
@@ -191,17 +152,17 @@ netifd_process_cb(struct uloop_process *proc, int ret)
 }
 
 void
-netifd_add_process(struct netifd_process *proc, int fd, int pid)
+netifd_add_process(struct netifd_process *proc, int log_fd, int pid)
 {
 	proc->uloop.cb = netifd_process_cb;
 	proc->uloop.pid = pid;
 	uloop_process_add(&proc->uloop);
 	list_add_tail(&proc->list, &process_list);
 
-	system_fd_set_cloexec(fd);
+	system_fd_set_cloexec(log_fd);
 	proc->log.stream.string_data = true;
 	proc->log.stream.notify_read = netifd_process_log_read_cb;
-	ustream_fd_init(&proc->log, fd);
+	ustream_fd_init(&proc->log, log_fd);
 }
 
 int
@@ -219,8 +180,6 @@ netifd_start_process(const char **argv, char **env, struct netifd_process *proc)
 		goto error;
 
 	if (!pid) {
-		int i;
-
 		if (env) {
 			while (*env) {
 				putenv(*env);
@@ -232,15 +191,10 @@ netifd_start_process(const char **argv, char **env, struct netifd_process *proc)
 
 		close(pfds[0]);
 
-		for (i = 0; i <= 2; i++) {
-			if (pfds[1] == i)
-				continue;
-
-			dup2(pfds[1], i);
-		}
-
-		if (pfds[1] > 2)
-			close(pfds[1]);
+        if (pfds[1] != STDERR_FILENO) {
+            dup2(pfds[1], STDERR_FILENO);
+            close(pfds[1]);
+        }
 
 		execvp(argv[0], (char **) argv);
 		exit(127);
@@ -290,7 +244,7 @@ void netifd_restart(void)
 
 static int usage(const char *progname)
 {
-	fprintf(stderr, "Usage: %s [options]\n"
+	ULOG_ERR("Usage: %s [options]\n"
 		"Options:\n"
 		" -d <mask>:		Mask for debug messages\n"
 		" -s <path>:		Path to the ubus socket\n"
@@ -319,6 +273,7 @@ int main(int argc, char **argv)
 {
 	const char *socket = NULL;
 	int ch;
+	int log_channel = ULOG_SYSLOG, log_level = DEFAULT_LOG_LEVEL;
 
 	global_argv = argv;
 
@@ -344,12 +299,10 @@ int main(int argc, char **argv)
 			break;
 		case 'l':
 			log_level = atoi(optarg);
-			if (log_level >= (int)ARRAY_SIZE(log_class))
-				log_level = (int)ARRAY_SIZE(log_class) - 1;
 			break;
 #ifndef DUMMY_MODE
 		case 'S':
-			use_syslog = false;
+			log_channel = ULOG_STDIO;
 			break;
 #endif
 		default:
@@ -357,8 +310,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (use_syslog)
-		openlog("netifd", 0, LOG_DAEMON);
+	ulog_threshold(log_level);
+	ulog_open(log_channel, LOG_DAEMON, "netifd");
 
 	uloop_init();
 	udebug_init(&ud);
@@ -367,19 +320,19 @@ int main(int argc, char **argv)
 		udebug_ubus_ring_init(&ud, &rings[i]);
 
 	if (netifd_ubus_init(socket) < 0) {
-		fprintf(stderr, "Failed to connect to ubus\n");
+		ULOG_ERR("Failed to connect to ubus\n");
 		return 1;
 	}
 
 	proto_shell_init();
 	extdev_init();
 	if(netifd_ucode_init()) {
-		fprintf(stderr, "Failed to initialize ucode\n");
+		ULOG_ERR("Failed to initialize ucode\n");
 		return 1;
 	}
 
 	if (system_init()) {
-		fprintf(stderr, "Failed to initialize system control\n");
+		ULOG_ERR("Failed to initialize system control\n");
 		return 1;
 	}
 
@@ -391,8 +344,7 @@ int main(int argc, char **argv)
 	netifd_ubus_done();
 	netifd_ucode_free();
 
-	if (use_syslog)
-		closelog();
+	ulog_close();
 
 	return 0;
 }

@@ -1060,7 +1060,7 @@ interface_set_prefix_address(struct device_prefix_assignment *assignment,
 
 			if (mtu > 0 && mtu_old != mtu) {
 				if (system_update_ipv6_mtu(l3_downlink, mtu) < 0 && mtu < mtu_old)
-					netifd_log_message(L_WARNING, "Failed to set IPv6 mtu to %d "
+					ULOG_WARN("Failed to set IPv6 mtu to %d "
 							"on interface '%s'\n", mtu, iface->name);
 			}
 		}
@@ -1200,7 +1200,7 @@ static void interface_update_prefix_assignments(struct device_prefix *prefix, bo
 		if (c->assigned == -1 || !interface_prefix_assign(&prefix->assignments, c)) {
 			if (c->assigned != -1) {
 				c->assigned = -1;
-				netifd_log_message(L_WARNING, "Failed to assign requested subprefix "
+				ULOG_WARN("Failed to assign requested subprefix "
 						"of size %hhu for %s, trying other\n", c->length, c->name);
 			}
 
@@ -1230,7 +1230,7 @@ static void interface_update_prefix_assignments(struct device_prefix *prefix, bo
 		} while (!assigned && ++c->length <= 64);
 
 		if (!assigned) {
-			netifd_log_message(L_WARNING, "Failed to assign subprefix "
+			ULOG_WARN("Failed to assign subprefix "
 					"of size %hhu for %s\n", c->length, c->name);
 			free(c);
 		} else
@@ -1244,7 +1244,7 @@ static void interface_update_prefix_assignments(struct device_prefix *prefix, bo
 			interface_set_prefix_address(c, prefix, iface, true);
 
 	if (!assigned_any)
-		netifd_log_message(L_WARNING, "You have delegated IPv6-prefixes but haven't assigned them "
+		ULOG_WARN("You have delegated IPv6-prefixes but haven't assigned them "
 				"to any interface. Did you forget to set option ip6assign on your lan-interfaces?");
 }
 

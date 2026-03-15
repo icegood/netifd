@@ -182,7 +182,7 @@ netifd_extdev_remove(struct extdev_bridge *ebr, struct blob_attr *msg)
 static inline void
 extdev_invocation_error(int error, const char *method, const char *devname)
 {
-	netifd_log_message(L_CRIT, "'%s' failed for '%s': %s\n",
+	ULOG_CRIT("'%s' failed for '%s': %s\n",
 		method, devname, ubus_strerror(error));
 }
 
@@ -206,7 +206,7 @@ extdev_lookup_id(struct extdev_type *etype)
 	return 0;
 
 error:
-	netifd_log_message(L_CRIT, "Could not find '%s' ubus ID: %s\n",
+	ULOG_CRIT("Could not find '%s' ubus ID: %s\n",
 			   etype->name, ubus_strerror(ret));
 	return ret;
 }
@@ -233,7 +233,7 @@ extdev_subscribe(struct extdev_type *etype)
 		etype->subscribed = false;
 		extdev_ext_ubus_obj_wait(&etype->obj_wait);
 	} else {
-		netifd_log_message(L_NOTICE, "subscribed to external device handler '%s'\n",
+		ULOG_NOTE("subscribed to external device handler '%s'\n",
 			etype->name);
 		etype->subscribed = true;
 	}
@@ -540,7 +540,7 @@ extdev_bridge_member_cb(struct device_user *usr, enum device_event event)
 	return;
 
 error:
-	netifd_log_message(L_CRIT, "Failed to create %s bridge %s: %s\n",
+	ULOG_CRIT("Failed to create %s bridge %s: %s\n",
 			   ebr->edev.dev.type->name, ebr->edev.dev.ifname, ubus_strerror(ret));
 	ubm->present = false;
 	ebr->n_present--;
@@ -791,7 +791,7 @@ __do_bridge_reload(struct extdev_bridge *ebr, struct blob_attr *config)
 	ret = netifd_extdev_reload(&ebr->edev, b.head);
 
 	if (ret) {
-		netifd_log_message(L_WARNING, "%s config reload failed: %s\n",
+		ULOG_WARN("%s config reload failed: %s\n",
 				   ebr->edev.dev.ifname, ubus_strerror(ret));
 		return DEV_CONFIG_RECREATE;
 	} else {
@@ -941,7 +941,7 @@ error:
 	free(edev->dev.config);
 	device_cleanup(&edev->dev);
 	free(edev);
-	netifd_log_message(L_WARNING, "Failed to create %s %s\n", type->name, name);
+	ULOG_WARN("Failed to create %s %s\n", type->name, name);
 	return NULL;
 }
 
@@ -1246,7 +1246,7 @@ extdev_ext_handler_remove_cb(struct ubus_context *ctx,
 	struct extdev_type *etype;
 	etype = container_of(obj, struct extdev_type, ubus_sub);
 
-	netifd_log_message(L_NOTICE, "%s: external device handler "
+	ULOG_NOTE("%s: external device handler "
 		"'%s' disappeared. Waiting for it to re-appear.\n",
 		etype->handler.name, etype->name);
 

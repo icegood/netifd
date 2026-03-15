@@ -23,6 +23,7 @@
 #include <libubox/uloop.h>
 #include <libubox/ustream.h>
 #include <libubox/utils.h>
+#include <libubox/ulog.h>
 
 #include <libubus.h>
 #include <udebug.h>
@@ -55,14 +56,6 @@ extern unsigned int debug_mask;
 extern struct udebug_buf udb_nl;
 
 enum {
-	L_CRIT,
-	L_WARNING,
-	L_NOTICE,
-	L_INFO,
-	L_DEBUG
-};
-
-enum {
 	DEBUG_SYSTEM	= 0,
 	DEBUG_DEVICE	= 1,
 	DEBUG_INTERFACE	= 2,
@@ -70,12 +63,12 @@ enum {
 };
 
 #ifdef DEBUG
-#define DPRINTF(format, ...) fprintf(stderr, "%s(%d): " format, __func__, __LINE__, ## __VA_ARGS__)
+#define DPRINTF(format, ...) ULOG_DEBUG("%s(%d): " format, __func__, __LINE__, ## __VA_ARGS__)
 #define D(level, format, ...) do { \
 		netifd_udebug_printf("[" #level "] %s(%d): " format,  __func__, __LINE__, ## __VA_ARGS__); \
 		if (debug_mask & (1 << (DEBUG_ ## level))) { \
 			DPRINTF(format, ##__VA_ARGS__); \
-			fprintf(stderr, "\n"); \
+			ULOG_DEBUG("\n"); \
 		} \
 	} while (0)
 #else
@@ -104,10 +97,8 @@ void netifd_udebug_printf(const char *format, ...)
 	__attribute__((format (printf, 1, 2)));
 void netifd_udebug_config(struct udebug_ubus *ctx, struct blob_attr *data,
 			  bool enabled);
-void netifd_log_message(int priority, const char *format, ...)
-	 __attribute__((format (printf, 2, 3)));
 
-void netifd_add_process(struct netifd_process *proc, int fd, int pid);
+void netifd_add_process(struct netifd_process *proc, int log_fd, int pid);
 int netifd_start_process(const char **argv, char **env, struct netifd_process *proc);
 void netifd_kill_process(struct netifd_process *proc);
 

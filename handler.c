@@ -133,7 +133,7 @@ netifd_init_extdev_handler(const char *config_file, json_object *obj,
 	return;
 
 field_missing:
-	netifd_log_message(L_WARNING, "external device handler description '%s' is"
+	ULOG_WARN("external device handler description '%s' is"
 			       "missing field '%s'\n", config_file, err_missing);
 }
 

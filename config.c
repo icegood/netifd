@@ -792,7 +792,7 @@ config_init_all(void)
 	uci_network = config_init_package("network");
 	if (!uci_network) {
 		uci_get_errorstr(uci_ctx, &err, NULL);
-		netifd_log_message(L_CRIT, "Failed to load network config (%s)\n", err);
+		ULOG_CRIT("Failed to load network config (%s)\n", err);
 		free(err);
 		return -1;
 	}

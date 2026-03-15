@@ -316,7 +316,7 @@ uc_netifd_start_process(uc_value_t *dir, uc_value_t *arg, uc_value_t *env, int *
 		goto error;
 
 	if (pid > 0) {
-		netifd_log_message(L_DEBUG, "Process started: %d", pid);
+		ULOG_DEBUG("Process started: %d", pid);
 		close(pfds[1]);
 		*fd = pfds[0];
 		return pid;
@@ -374,7 +374,7 @@ uc_netifd_start_process(uc_value_t *dir, uc_value_t *arg, uc_value_t *env, int *
 	if (pfds[1] > 2)
 		close(pfds[1]);
 
-	netifd_log_message(L_DEBUG, "To execute in child: %s", argv[0]);
+	ULOG_DEBUG("To execute in child: %s", argv[0]);
 	execvp(argv[0], (char **) argv);
 	exit(127);
 
@@ -394,7 +394,7 @@ uc_netifd_log(uc_vm_t *vm, size_t nargs)
 	    ucv_type(msg) != UC_STRING)
 		return NULL;
 
-	netifd_log_message(ucv_int64_get(prio), "%s", ucv_string_get(msg));
+	ulog(ucv_int64_get(prio), "%s", ucv_string_get(msg));
 	return NULL;
 }
 
@@ -556,12 +556,12 @@ int netifd_ucode_init(void)
 	ucv_object_add(obj, "dummy_mode", ucv_boolean_new(true));
 #endif
 
-#define ADD_CONST(n) ucv_object_add(obj, #n, ucv_int64_new(n))
-	ADD_CONST(L_CRIT);
-	ADD_CONST(L_WARNING);
-	ADD_CONST(L_NOTICE);
-	ADD_CONST(L_INFO);
-	ADD_CONST(L_DEBUG);
+#define ADD_CONST(name, value) ucv_object_add(obj, #name, ucv_int64_new(value))
+	ADD_CONST(L_CRIT, LOG_CRIT);
+	ADD_CONST(L_WARNING, LOG_WARNING);
+	ADD_CONST(L_NOTICE, LOG_NOTICE);
+	ADD_CONST(L_INFO, LOG_INFO);
+	ADD_CONST(L_DEBUG, LOG_DEBUG);
 #undef ADD_CONST
 
 	uc_function_list_register(obj, netifd_fns);
@@ -570,7 +570,7 @@ int netifd_ucode_init(void)
 	uc_source_put(source);
 
 	if (!prog) {
-		netifd_log_message(L_CRIT, "Error loading ucode script: %s\n", err);
+		ULOG_CRIT("Error loading ucode script: %s\n", err);
 		netifd_ucode_free();
 		return 1;
 	}

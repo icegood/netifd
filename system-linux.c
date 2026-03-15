@@ -1794,7 +1794,7 @@ int system_vlandev_add(struct device *vlandev, struct device *dev, struct vlande
 	nla_put_u16(msg, IFLA_VLAN_PROTOCOL, htons(cfg->proto));
 #else
 	if(cfg->proto == VLAN_PROTO_8021AD)
-		netifd_log_message(L_WARNING, "%s Your kernel is older than linux 3.10.0, 802.1ad is not supported defaulting to 802.1q", vlandev->type->name);
+		ULOG_WARN("%s Your kernel is older than linux 3.10.0, 802.1ad is not supported defaulting to 802.1q", vlandev->type->name);
 #endif
 
 	if (!(qos = nla_nest_start(msg, IFLA_VLAN_INGRESS_QOS)))
@@ -2131,7 +2131,7 @@ system_set_ethtool_eee_settings(struct device *dev, struct device_settings *s)
 	strncpy(ifr.ifr_name, dev->ifname, sizeof(ifr.ifr_name) - 1);
 
 	if (ioctl(sock_ioctl, SIOCETHTOOL, &ifr) != 0)
-		netifd_log_message(L_WARNING, "cannot set eee %d for device %s", s->eee, dev->ifname);
+		ULOG_WARN("cannot set eee %d for device %s", s->eee, dev->ifname);
 }
 
 static void
@@ -2375,7 +2375,7 @@ system_if_apply_settings(struct device *dev, struct device_settings *s, uint64_t
 		if (!(apply_mask & (DEV_OPT_MACADDR | DEV_OPT_DEFAULT_MACADDR)) || dev->external)
 			system_refresh_orig_macaddr(dev, &dev->orig_settings);
 #else
-		netifd_log_message(L_WARNING, "%s Your kernel is older than linux 6.1.0, changing DSA port conduit is not supported!", dev->ifname);
+		ULOG_WARN("%s Your kernel is older than linux 6.1.0, changing DSA port conduit is not supported!", dev->ifname);
 #endif
 	}
 

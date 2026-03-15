@@ -1124,7 +1124,7 @@ static void netifd_add_object(struct ubus_object *obj)
 	int ret = ubus_add_object(ubus_ctx, obj);
 
 	if (ret != 0)
-		fprintf(stderr, "Failed to publish object '%s': %s\n", obj->name, ubus_strerror(ret));
+		ULOG_ERR("Failed to publish object '%s': %s\n", obj->name, ubus_strerror(ret));
 }
 
 static const struct blobmsg_policy iface_policy = {

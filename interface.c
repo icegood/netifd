@@ -356,7 +356,7 @@ __interface_set_up(struct interface *iface)
 {
 	int ret;
 
-	netifd_log_message(L_NOTICE, "Interface '%s' is setting up now\n", iface->name);
+	ULOG_NOTE("Interface '%s' is setting up now\n", iface->name);
 
 	iface->state = IFS_SETUP;
 	ret = interface_proto_event(iface->proto, PROTO_CMD_SETUP, false);
@@ -400,7 +400,7 @@ interface_set_enabled(struct interface *iface, bool new_state)
 	if (iface->enabled == new_state)
 		return;
 
-	netifd_log_message(L_NOTICE, "Interface '%s' is %s\n", iface->name, new_state ? "enabled" : "disabled");
+	ULOG_NOTE("Interface '%s' is %s\n", iface->name, new_state ? "enabled" : "disabled");
 	iface->enabled = new_state;
 	interface_check_state(iface);
 }
@@ -411,7 +411,7 @@ interface_set_link_state(struct interface *iface, bool new_state)
 	if (iface->link_state == new_state)
 		return;
 
-	netifd_log_message(L_NOTICE, "Interface '%s' has link connectivity %s\n", iface->name, new_state ? "" : "loss");
+	ULOG_NOTE("Interface '%s' has link connectivity %s\n", iface->name, new_state ? "" : "loss");
 	iface->link_state = new_state;
 	interface_check_state(iface);
 
@@ -773,13 +773,13 @@ interface_proto_event_cb(struct interface_proto_state *state, enum interface_pro
 		iface->state = IFS_UP;
 		iface->start_time = system_get_rtime();
 		interface_event(iface, IFEV_UP);
-		netifd_log_message(L_NOTICE, "Interface '%s' is now up\n", iface->name);
+		ULOG_NOTE("Interface '%s' is now up\n", iface->name);
 		break;
 	case IFPEV_DOWN:
 		if (iface->state == IFS_DOWN)
 			return;
 
-		netifd_log_message(L_NOTICE, "Interface '%s' is now down\n", iface->name);
+		ULOG_NOTE("Interface '%s' is now down\n", iface->name);
 		mark_interface_down(iface);
 		interface_write_resolv_conf(iface->jail);
 		if (iface->main_dev.dev && !(iface->config_state == IFC_NORMAL && iface->autostart && iface->available))
@@ -792,7 +792,7 @@ interface_proto_event_cb(struct interface_proto_state *state, enum interface_pro
 		if (iface->state != IFS_UP)
 			return;
 
-		netifd_log_message(L_NOTICE, "Interface '%s' has lost the connection\n", iface->name);
+		ULOG_NOTE("Interface '%s' has lost the connection\n", iface->name);
 		mark_interface_down(iface);
 		iface->state = IFS_SETUP;
 		break;
@@ -900,7 +900,7 @@ interface_alloc(const char *name, struct blob_attr *config, bool dynamic)
 					iface->assignment_fixed_iface_id.s6_addr32[1] != 0) {
 				iface->assignment_fixed_iface_id = in6addr_any;
 				iface->assignment_fixed_iface_id.s6_addr[15] = 1;
-				netifd_log_message(L_WARNING, "Failed to parse ip6ifaceid for interface '%s', \
+				ULOG_WARN("Failed to parse ip6ifaceid for interface '%s', \
 							falling back to iface id 1.\n", iface->name);
 			}
 		}
